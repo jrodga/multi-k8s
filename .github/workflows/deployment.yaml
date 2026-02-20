@@ -57,6 +57,12 @@ jobs:
           cluster_name: ${{ env.CLUSTER_NAME }}
           location: ${{ env.CLUSTER_LOCATION }}
 
+      - name: Create/Update Kubernetes Secrets
+        run: |
+          kubectl create secret generic pgpassword \
+            --from-literal=PGPASSWORD="${{ secrets.PGPASSWORD }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       # -----------------------
       # Build Docker Images
       # -----------------------
@@ -85,6 +91,22 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s
+          kubectl rollout status deployment/postgres-deployment --timeout=180s
           kubectl set image deployment/server-deployment server=jrodga1604/multi-server-k8s-gh:${{ env.SHA }}
           kubectl set image deployment/client-deployment client=jrodga1604/multi-client-k8s-gh:${{ env.SHA }}
           kubectl set image deployment/worker-deployment worker=jrodga1604/multi-worker-k8s-gh:${{ env.SHA }}
+          kubectl rollout status deployment/server-deployment --timeout=180s
+          kubectl rollout status deployment/client-deployment --timeout=180s
+          kubectl rollout status deployment/worker-deployment --timeout=180s
+
+      - name: Print App URL
+        run: |
+          INGRESS_IP=$(kubectl get ingress ingress-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          INGRESS_HOST=$(kubectl get ingress ingress-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          APP_ENDPOINT="${INGRESS_IP:-$INGRESS_HOST}"
+          if [ -z "$APP_ENDPOINT" ]; then
+            echo "Ingress endpoint is not ready yet."
+            kubectl get ingress ingress-service
+            exit 1
+          fi
+          echo "App URL: http://$APP_ENDPOINT"
