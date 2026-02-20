@@ -8,7 +8,7 @@ on:
 env:
   PROJECT_ID: multi0k8s-487915
   CLUSTER_NAME: multi-cluster
-  CLUSTER_LOCATION: us-central1-c
+  CLUSTER_LOCATION: europe-west2
 
 jobs:
   build:
