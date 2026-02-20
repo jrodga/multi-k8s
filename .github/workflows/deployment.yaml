@@ -1,0 +1,90 @@
+name: Deploy MultiK8s
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: multi0k8s-487915
+  CLUSTER_NAME: multi-cluster
+  CLUSTER_LOCATION: us-central1-c
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write   # REQUIRED for OIDC
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set SHA
+        run: echo "SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      # -----------------------
+      # Run Tests
+      # -----------------------
+      - name: Run Tests
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t jrodga1604/react-test -f ./client/Dockerfile.dev ./client
+          docker run -e CI=true jrodga1604/react-test npm test
+
+      # -----------------------
+      # Authenticate to GCP (OIDC)
+      # -----------------------
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/606246282974/locations/global/workloadIdentityPools/jrodga/providers/jrodga-github
+          service_account: github-actions-sa@multi0k8s-487915.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker --quiet
+
+      - name: Get GKE Credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.CLUSTER_LOCATION }}
+
+      # -----------------------
+      # Build Docker Images
+      # -----------------------
+      - name: Build Images
+        run: |
+          docker build -t jrodga1604/multi-client-k8s-gh:latest -t jrodga1604/multi-client-k8s-gh:${{ env.SHA }} -f ./client/Dockerfile ./client
+          docker build -t jrodga1604/multi-server-k8s-gh:latest -t jrodga1604/multi-server-k8s-gh:${{ env.SHA }} -f ./server/Dockerfile ./server
+          docker build -t jrodga1604/multi-worker-k8s-gh:latest -t jrodga1604/multi-worker-k8s-gh:${{ env.SHA }} -f ./worker/Dockerfile ./worker
+
+      # -----------------------
+      # Push Images
+      # -----------------------
+      - name: Push Images
+        run: |
+          docker push jrodga1604/multi-client-k8s-gh:latest
+          docker push jrodga1604/multi-server-k8s-gh:latest
+          docker push jrodga1604/multi-worker-k8s-gh:latest
+
+          docker push jrodga1604/multi-client-k8s-gh:${{ env.SHA }}
+          docker push jrodga1604/multi-server-k8s-gh:${{ env.SHA }}
+          docker push jrodga1604/multi-worker-k8s-gh:${{ env.SHA }}
+
+      # -----------------------
+      # Deploy to GKE
+      # -----------------------
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s
+          kubectl set image deployment/server-deployment server=jrodga1604/multi-server-k8s-gh:${{ env.SHA }}
+          kubectl set image deployment/client-deployment client=jrodga1604/multi-client-k8s-gh:${{ env.SHA }}
+          kubectl set image deployment/worker-deployment worker=jrodga1604/multi-worker-k8s-gh:${{ env.SHA }}

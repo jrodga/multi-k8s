@@ -13,7 +13,7 @@ spec:
         component: web
     spec:
       containers:
-      - name: client
-        image: jrodga1604/multi-client
-        ports:
-        - containerPort: 3000
+        - name: client
+          image: rallycoding/multi-client
+          ports:
+            - containerPort: 3000

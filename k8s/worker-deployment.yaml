@@ -4,7 +4,7 @@ metadata:
   name: worker-deployment
 spec:
   replicas: 1
-  selector: 
+  selector:
     matchLabels:
       component: worker
   template:
@@ -14,12 +14,9 @@ spec:
     spec:
       containers:
         - name: worker
-          image: jrodga1604/multi-worker
+          image: rallycoding/multi-worker
           env:
             - name: REDIS_HOST
               value: redis-cluster-ip-service
             - name: REDIS_PORT
               value: '6379'
-
-
-
