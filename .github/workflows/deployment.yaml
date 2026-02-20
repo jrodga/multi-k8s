@@ -63,6 +63,15 @@ jobs:
             --from-literal=PGPASSWORD="${{ secrets.PGPASSWORD }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Ensure NGINX Ingress Controller
+        run: |
+          if ! kubectl get ingressclass nginx >/dev/null 2>&1; then
+            kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+          fi
+          kubectl wait --namespace ingress-nginx \
+            --for=condition=Available deployment/ingress-nginx-controller \
+            --timeout=300s
+
       # -----------------------
       # Build Docker Images
       # -----------------------
