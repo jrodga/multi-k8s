@@ -72,6 +72,22 @@ jobs:
             --for=condition=Available deployment/ingress-nginx-controller \
             --timeout=300s
 
+      - name: Wait for NGINX Admission Webhook
+        run: |
+          for i in {1..30}; do
+            ADMISSION_EP=$(kubectl get endpoints -n ingress-nginx ingress-nginx-controller-admission -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null || true)
+            if [ -n "$ADMISSION_EP" ]; then
+              echo "Ingress admission webhook endpoint is ready: $ADMISSION_EP"
+              exit 0
+            fi
+            echo "Waiting for ingress-nginx admission webhook endpoints (attempt $i/30)..."
+            sleep 10
+          done
+
+          echo "Ingress admission webhook endpoints are still not ready."
+          kubectl get svc,endpoints -n ingress-nginx | grep admission || true
+          exit 1
+
       # -----------------------
       # Build Docker Images
       # -----------------------

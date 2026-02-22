@@ -42,6 +42,43 @@ Accounts and access:
 
 Without these accounts/secrets, CI/CD can run tests but will fail when pushing images or deploying.
 
+### 2.1 Create the GKE Cluster First (Google Cloud)
+
+Before using the GitHub Actions deploy workflow, create the Kubernetes cluster in Google Cloud.
+
+Minimum console steps:
+
+1. Open Google Cloud Console and select your project (example: `multi0k8s-487915`).
+2. Enable the `Kubernetes Engine API` if prompted.
+3. Go to `Kubernetes Engine` -> `Clusters`.
+4. Click `Create`.
+5. Choose a Standard cluster (recommended for learning this project).
+6. Set cluster name to match your workflow (example: `multi-k8s`).
+7. Set region to match your workflow (example: `europe-west2`).
+8. Choose a small node pool to start (you can scale later).
+9. Create the cluster and wait until status is `Running`.
+
+Example `gcloud` command (regional cluster, matches this repo setup):
+
+```bash
+gcloud container clusters create multi-k8s \
+  --region europe-west2 \
+  --project multi0k8s-487915 \
+  --num-nodes 1
+```
+
+After creation, verify:
+
+```bash
+gcloud container clusters list --project multi0k8s-487915
+```
+
+Important: The values must match `.github/workflows/deployment.yaml`:
+
+- `PROJECT_ID`
+- `CLUSTER_NAME`
+- `CLUSTER_LOCATION`
+
 ## 3. Project Structure
 
 - `client/` React app
@@ -166,23 +203,27 @@ Creates or updates secret `pgpassword` from GitHub secret `PGPASSWORD`.
 Checks if `ingressclass nginx` exists.  
 If missing, installs ingress-nginx controller and waits until controller deployment is available.
 
-14. `Build Images` step  
+14. `Wait for NGINX Admission Webhook` step  
+On a brand-new cluster, the ingress controller can be "running" before its admission webhook is fully ready.  
+This step waits for the `ingress-nginx-controller-admission` service to have endpoints before applying your ingress manifest.
+
+15. `Build Images` step  
 Builds `client`, `server`, and `worker` images with two tags:
 - `latest`
 - commit-specific tag `${{ env.SHA }}`
 
-15. `Push Images` step  
+16. `Push Images` step  
 Pushes both tags to Docker Hub for all three images.
 
-16. `Deploy to Kubernetes` step  
+17. `Deploy to Kubernetes` step  
 Applies all manifests in `k8s/`, then updates deployments to use the SHA-tagged images.  
 Finally waits for rollout completion for `postgres`, `server`, `client`, and `worker`.
 
-17. `Print App URL When Ready` step  
+18. `Print App URL When Ready` step  
 After rollout, the workflow polls `ingress-service` until an external IP or hostname is available, then prints the app URL in logs.  
 It waits up to 10 minutes and fails with a clear message if ingress is still not provisioned.
 
-18. Rollback behavior  
+19. Rollback behavior  
 This workflow does not auto-rollback. If rollout fails, GitHub Actions shows the failing step and current cluster state so you can inspect and fix.
 
 ### 8.2 How Image Updates Work (`latest` vs `SHA`)
@@ -279,6 +320,15 @@ Fix:
 
 - Ensure `ingress-nginx` controller is installed/running
 - Wait for cloud load balancer provisioning
+
+### Fresh cluster ingress webhook error (`no endpoints available for service "ingress-nginx-controller-admission"`)
+
+This usually happens right after recreating a cluster. The ingress controller was installed, but the admission webhook service was not fully ready when `k8s/ingress-service.yaml` was applied.
+
+Fix:
+
+- Re-run the workflow once (often works)
+- Use a workflow wait step for admission webhook endpoints (already added in this repo)
 
 ## 13. Scaling Safely
 
