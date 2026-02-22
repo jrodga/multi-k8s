@@ -244,7 +244,49 @@ That `kubectl set image` command changes the Deployment spec to a new tag every 
 
 If you only used `latest` and never changed the image tag in the Deployment spec, Kubernetes could treat it as unchanged and skip rollout.
 
-## 9. Required GitHub Secrets
+## 9. Branch Workflow (Better CI/CD Practice)
+
+To follow better CI/CD standards, do your changes in a branch first, test them, and only then merge into `main`.
+
+This repo is now set up for that flow:
+
+- `.github/workflows/ci.yaml` runs tests on non-`main` branch pushes and on pull requests to `main`
+- `.github/workflows/deployment.yaml` deploys only when code is pushed to `main`
+
+### Recommended flow (`ci-test` example)
+
+1. Create or switch to your working branch:
+
+```bash
+git checkout ci-test
+```
+
+2. Make code changes and commit them.
+
+3. Push the branch:
+
+```bash
+git push -u origin ci-test
+```
+
+4. GitHub Actions runs the `CI` workflow (tests only).
+
+5. Open a Pull Request from `ci-test` to `main`.
+
+6. GitHub Actions runs `CI` again for the PR.
+
+7. If tests pass, merge the PR manually into `main`.
+
+8. The `Deploy MultiK8s` workflow runs automatically and deploys the new `main`.
+
+### Why this is better than pushing directly to `main`
+
+- You catch test failures before deployment
+- You can review changes in a PR
+- `main` stays more stable
+- Deployment happens only after an intentional merge
+
+## 10. Required GitHub Secrets
 
 Add these in GitHub:
 
@@ -254,7 +296,7 @@ Add these in GitHub:
 
 Without `PGPASSWORD`, `server` and `postgres` pods fail with `CreateContainerConfigError` because required environment variables cannot be resolved.
 
-## 10. Verify Deployment in Google Cloud Console
+## 11. Verify Deployment in Google Cloud Console
 
 Use Google Cloud Console:
 
@@ -272,7 +314,7 @@ Ingress check:
 Important: IPs under cluster "Control plane endpoint" are not your app URL.  
 Only the ingress external address is used to access your application in a browser.
 
-## 11. CLI Verification Commands
+## 12. CLI Verification Commands
 
 ```bash
 kubectl get deployments
@@ -291,7 +333,7 @@ kubectl rollout status deployment/server-deployment
 kubectl rollout status deployment/worker-deployment
 ```
 
-## 12. Common Problems and Fixes
+## 13. Common Problems and Fixes
 
 ### `CreateContainerConfigError`
 
@@ -330,7 +372,7 @@ Fix:
 - Re-run the workflow once (often works)
 - Use a workflow wait step for admission webhook endpoints (already added in this repo)
 
-## 13. Scaling Safely
+## 14. Scaling Safely
 
 To scale up without rollout failures:
 
@@ -339,7 +381,7 @@ To scale up without rollout failures:
 3. Increase `replicas` gradually
 4. Keep controlled rollout strategy
 
-## 14. Suggested Next Learning Milestones
+## 15. Suggested Next Learning Milestones
 
 1. Add readiness/liveness probes to all deployments.
 2. Add resource requests/limits for client/server/worker.
@@ -347,7 +389,7 @@ To scale up without rollout failures:
 4. Add staging namespace and separate workflow environment.
 5. Add monitoring (Cloud Logging + metrics dashboards).
 
-## 15. Quick Reference
+## 16. Quick Reference
 
 Local dev:
 
@@ -367,7 +409,7 @@ Kubernetes manifests:
 
 - `k8s/`
 
-## 16. Diagrams
+## 17. Diagrams
 
 ### Architecture
 
