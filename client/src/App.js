@@ -12,7 +12,7 @@ function App() {
         <header className="App-header">
           <div className="deploy-banner">
             <span className="deploy-dot" />
-            Deployment check: If you see this banner, the latest UI build is live.
+            Deployment check: created from secoundary branch .
           </div>
           <img src={logo} className="App-logo" alt="logo" />
           <a
