@@ -22,10 +22,51 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+  gap: 12px;
+  padding: 24px 16px;
 }
 
 .App-link {
   color: #61dafb;
+}
+
+.deploy-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #0f172a;
+  border: 2px solid #22c55e;
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  max-width: min(90vw, 680px);
+}
+
+.deploy-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e;
+  flex: 0 0 auto;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+}
+
+.nav-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-links a:hover {
+  text-decoration: underline;
 }
 
 @keyframes App-logo-spin {

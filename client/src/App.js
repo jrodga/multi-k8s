@@ -10,6 +10,10 @@ function App() {
     <Router>
       <div className="App">
         <header className="App-header">
+          <div className="deploy-banner">
+            <span className="deploy-dot" />
+            Deployment check: If you see this banner, the latest UI build is live.
+          </div>
           <img src={logo} className="App-logo" alt="logo" />
           <a
             className="App-link"
@@ -19,8 +23,10 @@ function App() {
           >
             Learn React
           </a>
-          <Link to="/">Home</Link>
-          <Link to="/otherpage">Other Page</Link>
+          <div className="nav-links">
+            <Link to="/">Home</Link>
+            <Link to="/otherpage">Other Page</Link>
+          </div>
         </header>
         <div>
           <Route exact path="/" component={Fib} />

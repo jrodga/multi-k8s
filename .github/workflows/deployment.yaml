@@ -107,3 +107,23 @@ jobs:
           kubectl rollout status deployment/server-deployment --timeout=180s
           kubectl rollout status deployment/client-deployment --timeout=180s
           kubectl rollout status deployment/worker-deployment --timeout=180s
+
+      - name: Print App URL When Ready
+        run: |
+          for i in {1..30}; do
+            INGRESS_IP=$(kubectl get ingress ingress-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            INGRESS_HOST=$(kubectl get ingress ingress-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            APP_ENDPOINT="${INGRESS_IP:-$INGRESS_HOST}"
+
+            if [ -n "$APP_ENDPOINT" ]; then
+              echo "App URL: http://$APP_ENDPOINT"
+              exit 0
+            fi
+
+            echo "Ingress endpoint not ready yet (attempt $i/30). Waiting 20s..."
+            sleep 20
+          done
+
+          echo "Ingress endpoint still unavailable after 10 minutes."
+          kubectl get ingress ingress-service
+          exit 1
